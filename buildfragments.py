@@ -2,6 +2,7 @@
 
 import argparse
 import sys
+import datetime
 import json
 from datetime import timedelta
 import os
@@ -50,6 +51,8 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
 	# url2 = 'http://www.npo.nl/brieven-boven-water/07-09-2013/KRO_1642075'
 
 	OPTS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+        # Sicco specific:
+	#OPTS = ["--user-data-dir=/home/sicco/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
 	options = webdriver.ChromeOptions();
 
 	for opt in OPTS:
@@ -62,14 +65,14 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
 
 	browser.get(vidurl)
 
-	time.sleep(7)
+	time.sleep(4)
 
 	try:
 		vidbox = browser.find_element_by_css_selector('.jwplayer')
 		vidbox.click()
 
 		# vid.click()
-		time.sleep(3)
+		time.sleep(2)
 		vidbox.click()
 
 		vid = browser.find_element_by_css_selector('.jwvideo video')
@@ -78,15 +81,20 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
 
 		if starttime is None:
 			cmd = ['ffmpeg', '-y', '-i', vidsrc]
+			#cmd = ['avconv', '-y', '-i', vidsrc]
 		else:
 			ss = '-ss %s' % printtimedelta(starttime)
 			t = '-t %s' % printtimedelta(timespan)
 			cmd = ['ffmpeg', '-y', ss, '-i', vidsrc, t]
+                        # Sicco specific:
+			#cmd = ['avconv', '-y', ss, '-i', vidsrc, t]
 
 		if text is not None:
 			drawtext="-vf drawtext=\"fontfile=Arvo-Bold.ttf:text='%s':fontsize=40:fontcolor=white:x=20:y=(main_h-text_h-20)\"" % text
 			cmd.append(drawtext)
 
+                # Set video bitrate to 901kB/s
+                cmd.append('-b:v 901k')
 		cmd.append(outputfile)
 
 		cmd = ' '.join(cmd)
@@ -105,6 +113,13 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
 def main(fragmentsfile):
 	fragments = [eval(line) for line in fragmentsfile]
 
+        if not os.path.exists('vids'):
+            os.makedirs('vids')
+
+        timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7]
+        if not os.path.exists('vids/' + timestamp):
+            os.makedirs('vids/' + timestamp)
+
 	for i,fragment in enumerate(fragments):
 		prid = fragment[0]
 		url = prid2url(prid)
@@ -112,10 +127,12 @@ def main(fragmentsfile):
 		end = parsetimedelta(fragment[2])
 		text = subtitle(fragment[3])
 		t = end - begin
-		download(url, 'vids/%03d-%s-%09d.ogg' % (i, prid, begin.seconds), begin, t, text)
+		download(url, 'vids/' + timestamp + '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
 		# print begin, t
 		# print printtimedelta(begin), printtimedelta(t)
 
+        # Merge all videos together
+        os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser(description='Process fragments file and build video.')
@@ -123,6 +140,3 @@ if __name__ == '__main__':
 	args = parser.parse_args()
 
 	main(args.fragments)
-	
-
-

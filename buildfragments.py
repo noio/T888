@@ -2,13 +2,13 @@
 
 import argparse
 import sys
-import datetime
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 import os
 import time
 import subprocess
 from selenium import webdriver
+import selenium.webdriver.support.ui as ui
 
 ### FUNCTIONS ###
 
@@ -62,52 +62,42 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     # capabilities["chrome.switches"] = OPTS
 
     browser = webdriver.Chrome(chrome_options=options)
-
     browser.get(vidurl)
 
-    time.sleep(4)
+    wait = ui.WebDriverWait(browser, 10)
+    wait.until(lambda driver: driver.find_element_by_css_selector('.jwvideo'))
 
-    try:
-        vidbox = browser.find_element_by_css_selector('.jwplayer')
-        vidbox.click()
+    vidbox = browser.find_element_by_css_selector('.jwplayer')
+    vidbox.click()
 
-        # vid.click()
-        time.sleep(2)
-        vidbox.click()
+    wait.until(lambda driver: driver.find_element_by_css_selector('.jwvideo video'))
+    
+    vid = browser.find_element_by_css_selector('.jwvideo video')
+    vidsrc = vid.get_attribute("src")
+    vidbox.click()
 
-        vid = browser.find_element_by_css_selector('.jwvideo video')
+    if starttime is None:
+        cmd = ['ffmpeg', '-y', '-i', vidsrc]
+        #cmd = ['avconv', '-y', '-i', vidsrc]
+    else:
+        ss = '-ss %s' % printtimedelta(starttime)
+        t = '-t %s' % printtimedelta(timespan)
+        cmd = ['ffmpeg', '-y', ss, '-i', vidsrc, t]
+                    # Sicco specific:
+        #cmd = ['avconv', '-y', ss, '-i', vidsrc, t]
 
-        vidsrc = vid.get_attribute("src")
+    if text is not None:
+        drawtext="-vf drawtext=\"fontfile=Arvo-Bold.ttf:text='%s':fontsize=40:fontcolor=white:x=20:y=(main_h-text_h-20)\"" % text
+        cmd.append(drawtext)
 
-        if starttime is None:
-            cmd = ['ffmpeg', '-y', '-i', vidsrc]
-            #cmd = ['avconv', '-y', '-i', vidsrc]
-        else:
-            ss = '-ss %s' % printtimedelta(starttime)
-            t = '-t %s' % printtimedelta(timespan)
-            cmd = ['ffmpeg', '-y', ss, '-i', vidsrc, t]
-                        # Sicco specific:
-            #cmd = ['avconv', '-y', ss, '-i', vidsrc, t]
+    # Set video bitrate to 901kB/s
+    cmd.append('-b:v 901k')
+    cmd.append(outputfile)
 
-        if text is not None:
-            drawtext="-vf drawtext=\"fontfile=Arvo-Bold.ttf:text='%s':fontsize=40:fontcolor=white:x=20:y=(main_h-text_h-20)\"" % text
-            cmd.append(drawtext)
+    cmd = ' '.join(cmd)
+    print cmd
+    os.system(cmd)
 
-        # Set video bitrate to 901kB/s
-        cmd.append('-b:v 901k')
-        cmd.append(outputfile)
-
-        cmd = ' '.join(cmd)
-        print cmd
-        os.system(cmd)
-
-        # subprocess.call(cmd)
-        # open('npo.html', 'w').write(browser.page_source.encode('utf-8'))
-        # elem = browser.find_element_by_name('p')
-
-        # response = urllib2.urlopen('http://python.org/')
-    except:
-        pass
     browser.quit()
 
 def main(fragmentsfile):

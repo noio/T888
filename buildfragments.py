@@ -56,14 +56,9 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     """ Saves a video for a given npo.nl url, using ffmpeg
     savevideo.py [url] [filename]
     """
-    
-    
     options = webdriver.ChromeOptions();
     for opt in CHROME_OPTIONS:
         options.add_argument(opt)
-
-    # capabilities = webdriver.DesiredCapabilities.CHROME
-    # capabilities["chrome.switches"] = OPTS
 
     browser = webdriver.Chrome(chrome_options=options)
     browser.get(vidurl)
@@ -119,7 +114,7 @@ def main(fragmentsfile):
         download(url, filepath, begin, t, text)
 
     # Merge all videos together
-    os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')
+    os.system('mencoder -oac mp3lame -ovc copy ' + folder + '/*.mp4 -o ' + folder + '/compilation.mp4')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process fragments file and build video.')

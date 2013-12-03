@@ -113,12 +113,12 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
 def main(fragmentsfile):
     fragments = [eval(line) for line in fragmentsfile]
 
-        if not os.path.exists('vids'):
-            os.makedirs('vids')
+    if not os.path.exists('vids'):
+        os.makedirs('vids')
 
-        timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7]
-        if not os.path.exists('vids/' + timestamp):
-            os.makedirs('vids/' + timestamp)
+    timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7]
+    if not os.path.exists('vids/' + timestamp):
+        os.makedirs('vids/' + timestamp)
 
     for i,fragment in enumerate(fragments):
         prid = fragment[0]
@@ -127,7 +127,7 @@ def main(fragmentsfile):
         end = parsetimedelta(fragment[2])
         text = subtitle(fragment[3])
         t = end - begin
-        download(url, 'vids/' + timestamp + '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
+        download(url, 'vids' + '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
         # print begin, t
         # print printtimedelta(begin), printtimedelta(t)
 

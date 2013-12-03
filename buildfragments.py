@@ -5,10 +5,21 @@ import sys
 import json
 from datetime import datetime, timedelta
 import os
+import platform
 import time
 import subprocess
 from selenium import webdriver
 import selenium.webdriver.support.ui as ui
+
+### CONSTANTS ###
+USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
+
+if platform.system() == 'Darwin'
+    CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    VIDTOOL = 'ffmpeg'
+else:
+    CHROME_OPTIONS = ["--user-data-dir=~.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    VIDTOOL = 'avconf'
 
 ### FUNCTIONS ###
 
@@ -45,16 +56,9 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     """ Saves a video for a given npo.nl url, using ffmpeg
     savevideo.py [url] [filename]
     """
-    USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
-    # USER_AGENT_STRING_IPAD = "Mozilla/5.0 (iPad; CPU OS 5_0 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A334 Safari/7534.48.3"
-    # url = 'http://www.npo.nl/heibel-langs-de-lijn/10-03-2013/KRO_1408553'
-    # url2 = 'http://www.npo.nl/brieven-boven-water/07-09-2013/KRO_1642075'
-
-    OPTS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
-        # Sicco specific:
-    #OPTS = ["--user-data-dir=/home/sicco/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    
+    
     options = webdriver.ChromeOptions();
-
     for opt in OPTS:
         options.add_argument(opt)
 
@@ -77,14 +81,11 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     vidbox.click()
 
     if starttime is None:
-        cmd = ['ffmpeg', '-y', '-i', vidsrc]
-        #cmd = ['avconv', '-y', '-i', vidsrc]
+        cmd = [VIDTOOL, '-y', '-i', vidsrc]
     else:
         ss = '-ss %s' % printtimedelta(starttime)
         t = '-t %s' % printtimedelta(timespan)
-        cmd = ['ffmpeg', '-y', ss, '-i', vidsrc, t]
-                    # Sicco specific:
-        #cmd = ['avconv', '-y', ss, '-i', vidsrc, t]
+        cmd = [VIDTOOL, '-y', ss, '-i', vidsrc, t]
 
     if text is not None:
         drawtext="-vf drawtext=\"fontfile=Arvo-Bold.ttf:text='%s':fontsize=40:fontcolor=white:x=20:y=(main_h-text_h-20)\"" % text
@@ -97,7 +98,6 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     cmd = ' '.join(cmd)
     print cmd
     os.system(cmd)
-
     browser.quit()
 
 def main(fragmentsfile):
@@ -106,7 +106,7 @@ def main(fragmentsfile):
     if not os.path.exists('vids'):
         os.makedirs('vids')
 
-    timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7]
+    timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7].replace(':', '_')
     if not os.path.exists('vids/' + timestamp):
         os.makedirs('vids/' + timestamp)
 
@@ -117,12 +117,13 @@ def main(fragmentsfile):
         end = parsetimedelta(fragment[2])
         text = subtitle(fragment[3])
         t = end - begin
-        download(url, 'vids' + '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
+        print 'here1'
+        download(url, 'vids/' + timestamp +  '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
         # print begin, t
         # print printtimedelta(begin), printtimedelta(t)
 
-        # Merge all videos together
-        os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')
+    # Merge all videos together
+    os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process fragments file and build video.')

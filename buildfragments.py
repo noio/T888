@@ -24,17 +24,12 @@ else:
 
 ### FUNCTIONS ###
 
-def prid2url(pr_id):
+def fragmenturl(obj):
 
-    with open('kro-subtitles/program_info/' + pr_id + '.json', 'r') as IN:
-        broken_json = IN.readline()
-
-    pr_info = json.loads(broken_json[14:-3])
-
-    pr_date = pr_info['gidsdatum']
+    pr_id = obj['prid']
+    pr_date = obj['gidsdatum']
     pr_date2 = "{}-{}-{}".format(pr_date[8:10], pr_date[5:7], pr_date[:4])
-
-    pr_titel = pr_info['streamSense']['program'].replace('_','-')
+    pr_titel = pr_info['streamSense_program'].replace('_','-')
 
     return "http://www.npo.nl/{}/{}/{}".format(pr_titel, pr_date2, pr_id)
 
@@ -111,7 +106,7 @@ def main(fragmentsfile):
 
     for i,fragment in enumerate(fragments):
         prid = fragment['prid']
-        url = prid2url(prid)
+        url = fragmenturl(prid)
         begin = parsetimedelta(fragment['start_time'])
         end = parsetimedelta(fragment['end_time'])
         text = subtitle(fragment['text'])

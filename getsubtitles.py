@@ -26,7 +26,7 @@ def main():
         os.system("curl -0 %s | tar -zx" % (prid_source, ))
     
     if not os.path.exists(destination_folder):
-        os.makedir(destination_folder)
+        os.mkdir(destination_folder)
     
     files = os.listdir(src_folder)
     

@@ -44,7 +44,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
     if 'gidsdatum' in programma_json:
         pgidsdatum = programma_json['gidsdatum']
     
-    print subsfilename, programma_json['titel'],  pgidsdatum
+    if 'titel' in programma_json: print subsfilename, programma_json['titel'],  pgidsdatum
     
     # Walk the subsfile
     prevline = ''
@@ -103,7 +103,7 @@ def main(arguments):
     if shuffle:
         random.shuffle(resultlist)
     
-    json.dump(resultlist, outfile)
+    json.dump(resultlist, outfile, indent=4)
     
     print "Finished in %.0f seconds" % (time.time() - start_time)
 

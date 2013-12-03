@@ -14,7 +14,7 @@ import selenium.webdriver.support.ui as ui
 ### CONSTANTS ###
 USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
 
-if platform.system() == 'Darwin'
+if platform.system() == 'Darwin':
     CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
     VIDTOOL = 'ffmpeg'
 else:
@@ -59,7 +59,7 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     
     
     options = webdriver.ChromeOptions();
-    for opt in OPTS:
+    for opt in CHROME_OPTIONS:
         options.add_argument(opt)
 
     # capabilities = webdriver.DesiredCapabilities.CHROME
@@ -106,7 +106,7 @@ def main(fragmentsfile):
     if not os.path.exists('vids'):
         os.makedirs('vids')
 
-    timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7].replace(':', '_')
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
     if not os.path.exists('vids/' + timestamp):
         os.makedirs('vids/' + timestamp)
 
@@ -117,7 +117,6 @@ def main(fragmentsfile):
         end = parsetimedelta(fragment[2])
         text = subtitle(fragment[3])
         t = end - begin
-        print 'here1'
         download(url, 'vids/' + timestamp +  '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
         # print begin, t
         # print printtimedelta(begin), printtimedelta(t)

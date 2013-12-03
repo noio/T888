@@ -6,6 +6,7 @@ import datetime
 import json
 from datetime import timedelta
 import os
+import platform
 import time
 import subprocess
 from selenium import webdriver
@@ -50,11 +51,14 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     # url = 'http://www.npo.nl/heibel-langs-de-lijn/10-03-2013/KRO_1408553'
     # url2 = 'http://www.npo.nl/brieven-boven-water/07-09-2013/KRO_1642075'
 
-    OPTS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
-        # Sicco specific:
-    #OPTS = ["--user-data-dir=/home/sicco/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
-    options = webdriver.ChromeOptions();
+    platfrm = platform.system()
+    if platfrm == 'Darwin':
+        OPTS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    elif platfrm == 'Linux':
+        print 'hoi'
+        OPTS = ["--user-data-dir=~.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
 
+    options = webdriver.ChromeOptions();
     for opt in OPTS:
         options.add_argument(opt)
 
@@ -65,49 +69,51 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
 
     browser.get(vidurl)
 
+    time.sleep(7)
+
+    vidbox = browser.find_element_by_css_selector('.jwplayer')
+    vidbox.click()
+
+    # vid.click()
     time.sleep(4)
+    vidbox.click()
 
-    try:
-        vidbox = browser.find_element_by_css_selector('.jwplayer')
-        vidbox.click()
+    vid = browser.find_element_by_css_selector('.jwvideo video')
 
-        # vid.click()
-        time.sleep(2)
-        vidbox.click()
+    vidsrc = vid.get_attribute("src")
 
-        vid = browser.find_element_by_css_selector('.jwvideo video')
-
-        vidsrc = vid.get_attribute("src")
-
-        if starttime is None:
+    if starttime is None:
+        if platfrm == 'Darwin':
             cmd = ['ffmpeg', '-y', '-i', vidsrc]
-            #cmd = ['avconv', '-y', '-i', vidsrc]
-        else:
-            ss = '-ss %s' % printtimedelta(starttime)
-            t = '-t %s' % printtimedelta(timespan)
+        elif platfrm == 'Linux':
+            print 'oi1'
+            cmd = ['avconv', '-y', '-i', vidsrc]
+    else:
+        ss = '-ss %s' % printtimedelta(starttime)
+        t = '-t %s' % printtimedelta(timespan)
+        if platfrm == 'Darwin':
             cmd = ['ffmpeg', '-y', ss, '-i', vidsrc, t]
-                        # Sicco specific:
-            #cmd = ['avconv', '-y', ss, '-i', vidsrc, t]
+        elif platfrm == 'Linux':
+            print 'oi2'
+            cmd = ['avconv', '-y', ss, '-i', vidsrc, t]
 
-        if text is not None:
-            drawtext="-vf drawtext=\"fontfile=Arvo-Bold.ttf:text='%s':fontsize=40:fontcolor=white:x=20:y=(main_h-text_h-20)\"" % text
-            cmd.append(drawtext)
+    if text is not None:
+        drawtext="-vf drawtext=\"fontfile=Arvo-Bold.ttf:text='%s':fontsize=40:fontcolor=white:x=20:y=(main_h-text_h-20)\"" % text
+        cmd.append(drawtext)
 
-        # Set video bitrate to 901kB/s
-        cmd.append('-b:v 901k')
-        cmd.append(outputfile)
+    # Set video bitrate to 901kB/s
+    cmd.append('-b:v 901k')
+    cmd.append(outputfile)
 
-        cmd = ' '.join(cmd)
-        print cmd
-        os.system(cmd)
+    cmd = ' '.join(cmd)
+    print cmd
+    os.system(cmd)
 
-        # subprocess.call(cmd)
-        # open('npo.html', 'w').write(browser.page_source.encode('utf-8'))
-        # elem = browser.find_element_by_name('p')
+    # subprocess.call(cmd)
+    # open('npo.html', 'w').write(browser.page_source.encode('utf-8'))
+    # elem = browser.find_element_by_name('p')
 
-        # response = urllib2.urlopen('http://python.org/')
-    except:
-        pass
+    # response = urllib2.urlopen('http://python.org/')
     browser.quit()
 
 def main(fragmentsfile):
@@ -116,7 +122,7 @@ def main(fragmentsfile):
     if not os.path.exists('vids'):
         os.makedirs('vids')
 
-    timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7]
+    timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7].replace(':', '_')
     if not os.path.exists('vids/' + timestamp):
         os.makedirs('vids/' + timestamp)
 
@@ -127,12 +133,13 @@ def main(fragmentsfile):
         end = parsetimedelta(fragment[2])
         text = subtitle(fragment[3])
         t = end - begin
-        download(url, 'vids' + '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
+        print 'here1'
+        download(url, 'vids/' + timestamp +  '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
         # print begin, t
         # print printtimedelta(begin), printtimedelta(t)
 
-        # Merge all videos together
-        os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')
+    # Merge all videos together
+    os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process fragments file and build video.')

@@ -2,14 +2,24 @@
 
 import argparse
 import sys
-import datetime
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
 import os
 import platform
 import time
 import subprocess
 from selenium import webdriver
+import selenium.webdriver.support.ui as ui
+
+### CONSTANTS ###
+USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
+
+if platform.system() == 'Darwin':
+    CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    VIDTOOL = 'ffmpeg'
+else:
+    CHROME_OPTIONS = ["--user-data-dir=~/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    VIDTOOL = 'avconv'
 
 ### FUNCTIONS ###
 
@@ -46,56 +56,31 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     """ Saves a video for a given npo.nl url, using ffmpeg
     savevideo.py [url] [filename]
     """
-    USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
-    # USER_AGENT_STRING_IPAD = "Mozilla/5.0 (iPad; CPU OS 5_0 like Mac OS X) AppleWebKit/534.46 (KHTML, like Gecko) Version/5.1 Mobile/9A334 Safari/7534.48.3"
-    # url = 'http://www.npo.nl/heibel-langs-de-lijn/10-03-2013/KRO_1408553'
-    # url2 = 'http://www.npo.nl/brieven-boven-water/07-09-2013/KRO_1642075'
-
-    platfrm = platform.system()
-    if platfrm == 'Darwin':
-        OPTS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
-    elif platfrm == 'Linux':
-        print 'hoi'
-        OPTS = ["--user-data-dir=~.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
-
     options = webdriver.ChromeOptions();
-    for opt in OPTS:
+    for opt in CHROME_OPTIONS:
         options.add_argument(opt)
 
-    # capabilities = webdriver.DesiredCapabilities.CHROME
-    # capabilities["chrome.switches"] = OPTS
-
     browser = webdriver.Chrome(chrome_options=options)
-
     browser.get(vidurl)
 
-    time.sleep(7)
+    wait = ui.WebDriverWait(browser, 10)
+    wait.until(lambda driver: driver.find_element_by_css_selector('.jwvideo'))
 
     vidbox = browser.find_element_by_css_selector('.jwplayer')
     vidbox.click()
 
-    # vid.click()
-    time.sleep(4)
+    wait.until(lambda driver: driver.find_element_by_css_selector('.jwvideo video'))
+    
+    vid = browser.find_element_by_css_selector('.jwvideo video')
+    vidsrc = vid.get_attribute("src")
     vidbox.click()
 
-    vid = browser.find_element_by_css_selector('.jwvideo video')
-
-    vidsrc = vid.get_attribute("src")
-
     if starttime is None:
-        if platfrm == 'Darwin':
-            cmd = ['ffmpeg', '-y', '-i', vidsrc]
-        elif platfrm == 'Linux':
-            print 'oi1'
-            cmd = ['avconv', '-y', '-i', vidsrc]
+        cmd = [VIDTOOL, '-y', '-i', vidsrc]
     else:
         ss = '-ss %s' % printtimedelta(starttime)
         t = '-t %s' % printtimedelta(timespan)
-        if platfrm == 'Darwin':
-            cmd = ['ffmpeg', '-y', ss, '-i', vidsrc, t]
-        elif platfrm == 'Linux':
-            print 'oi2'
-            cmd = ['avconv', '-y', ss, '-i', vidsrc, t]
+        cmd = [VIDTOOL, '-y', ss, '-i', vidsrc, t]
 
     if text is not None:
         drawtext="-vf drawtext=\"fontfile=Arvo-Bold.ttf:text='%s':fontsize=40:fontcolor=white:x=20:y=(main_h-text_h-20)\"" % text
@@ -108,23 +93,15 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     cmd = ' '.join(cmd)
     print cmd
     os.system(cmd)
-
-    # subprocess.call(cmd)
-    # open('npo.html', 'w').write(browser.page_source.encode('utf-8'))
-    # elem = browser.find_element_by_name('p')
-
-    # response = urllib2.urlopen('http://python.org/')
     browser.quit()
 
 def main(fragmentsfile):
     fragments = [eval(line) for line in fragmentsfile]
+    name = os.path.basename(os.path.splitext(fragmentsfile.name)[0])
 
-    if not os.path.exists('vids'):
-        os.makedirs('vids')
-
-    timestamp = str(datetime.datetime.now()).replace(' ', '_')[:-7].replace(':', '_')
-    if not os.path.exists('vids/' + timestamp):
-        os.makedirs('vids/' + timestamp)
+    folder = os.path.join('vids', name + datetime.now().strftime('%Y%m%d_%H%M'))
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
     for i,fragment in enumerate(fragments):
         prid = fragment[0]
@@ -133,13 +110,11 @@ def main(fragmentsfile):
         end = parsetimedelta(fragment[2])
         text = subtitle(fragment[3])
         t = end - begin
-        print 'here1'
-        download(url, 'vids/' + timestamp +  '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
-        # print begin, t
-        # print printtimedelta(begin), printtimedelta(t)
+        filepath = os.path.join(folder,  '%03d-%s-%09d.mp4' % (i, prid, begin.seconds))
+        download(url, filepath, begin, t, text)
 
     # Merge all videos together
-    os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')
+    os.system('mencoder -oac mp3lame -ovc copy ' + folder + '/*.mp4 -o ' + folder + '/compilation.mp4')
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process fragments file and build video.')

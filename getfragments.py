@@ -42,7 +42,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
     prid = 'undefined'
     if 'prid' in programma_json:
         prid = programma_json['prid']
-    pgidsdatum = 'onbekend'
+    pgidsdatum = ''
     if 'gidsdatum' in programma_json:
         pgidsdatum = programma_json['gidsdatum']
     
@@ -50,6 +50,10 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
         if 'titel' in programma_json: 
             print subsfilename, programma_json['titel'],  pgidsdatum
     
+    streamSense_program = ''
+    if 'streamSense' in programma_json:
+        if 'program' in programma_json['streamSense']:
+            streamSense_program = programma_json['streamSense']['program']
     # Walk the subsfile
     prevline = ''
     
@@ -69,7 +73,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
                 except:
                     print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevsplit, )
             prevline = line
-    # returns a list of dicts, each element is a matching line, each dict has keys 'start_time' 'end_time' 'text'
+    # returns a list of dicts, each element is a matching line, each dict has keys 'prid' 'start_time' 'end_time' 'text'
     return result
 
 
@@ -81,8 +85,11 @@ def main(arguments):
     program_regex = arguments.program_regex
     search_regex = arguments.search_regex
     shuffle = arguments.shuffle
-    start_time = time.time()
+    start_offset = arguments.offset + arguments.start_padding
+    end_offset = arguments.offset + arguments.end_padding
     
+    start_time = time.time()
+
     print "Finding subtitles with expression: %s, in programs with expression %s\nfrom source '%s' to output file '%s'"%(search_regex, program_regex, subs_folder, outfile.name)
     
     # Ga programma's af
@@ -107,7 +114,7 @@ def main(arguments):
     if shuffle:
         random.shuffle(resultlist)
     
-    json.dump(resultlist, outfile, indent=4)
+    json.dump(resultlist, outfile)
     
     print "Found %d fragments." % len(resultlist)
     print "Finished in %.0f seconds" % (time.time() - start_time)
@@ -121,6 +128,10 @@ if __name__ == "__main__":
     parser.add_argument('--subs', type=str, help='folder where to search for subtitle files', default='subtitles')
     parser.add_argument('--program_info', type=str, help='folder where to search for program info', default='program_info')
     parser.add_argument('--shuffle', type=bool, default=False, help='toggle shuffling, default is False')
+    parser.add_argument('--offset', type=float, default=0.0, help='insert an offset for each subtitle, >0 is later, <0 earlier')
+    parser.add_argument('--start_padding', type=float, default=0.0, help='insert a padding to the start of the subtitle, >0 is later, <0 earlier')
+    parser.add_argument('--end_padding', type=float, default=0.0, help='insert a padding to the end of the subtitle, >0 is later, <0 earlier')
+    
     args = parser.parse_args()
 
     main(args)

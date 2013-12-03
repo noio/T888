@@ -12,6 +12,8 @@ import time
 import argparse
 from datetime import timedelta
 
+### CONSTANTS ###
+VERBOSE = False
 
 def parsetimedelta(timestring):
     d = timedelta(hours=int(timestring[0:2]), minutes=int(timestring[3:5]), 
@@ -44,7 +46,9 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
     if 'gidsdatum' in programma_json:
         pgidsdatum = programma_json['gidsdatum']
     
-    if 'titel' in programma_json: print subsfilename, programma_json['titel'],  pgidsdatum
+    if VERBOSE:
+        if 'titel' in programma_json: 
+            print subsfilename, programma_json['titel'],  pgidsdatum
     
     # Walk the subsfile
     prevline = ''
@@ -60,7 +64,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
                 starttime = prevlinesplit[0]
                 try:
                     endtime = prevlinesplit[2].strip()
-                    print '  ' + line,
+                    if VERBOSE: print '  ' + line,
                     result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':line.strip()})
                 except:
                     print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevsplit, )
@@ -105,6 +109,7 @@ def main(arguments):
     
     json.dump(resultlist, outfile, indent=4)
     
+    print "Found %d fragments." % len(resultlist)
     print "Finished in %.0f seconds" % (time.time() - start_time)
 
 

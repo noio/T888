@@ -18,8 +18,8 @@ if platform.system() == 'Darwin':
     CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
     VIDTOOL = 'ffmpeg'
 else:
-    CHROME_OPTIONS = ["--user-data-dir=~.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
-    VIDTOOL = 'avconf'
+    CHROME_OPTIONS = ["--user-data-dir=~/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    VIDTOOL = 'avconv'
 
 ### FUNCTIONS ###
 
@@ -102,13 +102,11 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
 
 def main(fragmentsfile):
     fragments = [eval(line) for line in fragmentsfile]
+    name = os.path.basename(os.path.splitext(fragmentsfile.name)[0])
 
-    if not os.path.exists('vids'):
-        os.makedirs('vids')
-
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M')
-    if not os.path.exists('vids/' + timestamp):
-        os.makedirs('vids/' + timestamp)
+    folder = os.path.join('vids', name + datetime.now().strftime('%Y%m%d_%H%M'))
+    if not os.path.exists(folder):
+        os.makedirs(folder)
 
     for i,fragment in enumerate(fragments):
         prid = fragment[0]
@@ -117,9 +115,8 @@ def main(fragmentsfile):
         end = parsetimedelta(fragment[2])
         text = subtitle(fragment[3])
         t = end - begin
-        download(url, 'vids/' + timestamp +  '/%03d-%s-%09d.mp4' % (i, prid, begin.seconds), begin, t, text)
-        # print begin, t
-        # print printtimedelta(begin), printtimedelta(t)
+        filepath = os.path.join(folder,  '%03d-%s-%09d.mp4' % (i, prid, begin.seconds))
+        download(url, filepath, begin, t, text)
 
     # Merge all videos together
     os.system('mencoder -oac mp3lame -ovc copy vids/' + timestamp + '/*.mp4 -o vids/' + timestamp + '/compilation.mp4')

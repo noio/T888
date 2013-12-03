@@ -46,8 +46,8 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
     if 'gidsdatum' in programma_json:
         pgidsdatum = programma_json['gidsdatum']
     
-    if VERBOSE:
-        if 'titel' in programma_json: 
+    if 'titel' in programma_json:
+        if VERBOSE:
             print subsfilename, programma_json['titel'],  pgidsdatum
     
     streamSense_program = ''
@@ -69,7 +69,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
                 try:
                     endtime = prevlinesplit[2].strip()
                     if VERBOSE: print '  ' + line,
-                    result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':line.strip()})
+                    result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':line.strip(), 'gidsdatum':pgidsdatum, 'streamSense_program':streamSense_program})
                 except:
                     print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevsplit, )
             prevline = line
@@ -114,7 +114,7 @@ def main(arguments):
     if shuffle:
         random.shuffle(resultlist)
     
-    json.dump(resultlist, outfile)
+    json.dump(resultlist, outfile, indent=2)
     
     print "Found %d fragments." % len(resultlist)
     print "Finished in %.0f seconds" % (time.time() - start_time)

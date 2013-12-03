@@ -12,13 +12,14 @@ from selenium import webdriver
 import selenium.webdriver.support.ui as ui
 
 ### CONSTANTS ###
+MAX_CHARACTERS_PER_SUBTITLE_LINE = 25
 USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
 
 if platform.system() == 'Darwin':
     CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
     VIDTOOL = 'ffmpeg'
 else:
-    CHROME_OPTIONS = ["--user-data-dir=~/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+    CHROME_OPTIONS = ["--user-data-dir=/home/sicco/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
     VIDTOOL = 'avconv'
 
 ### FUNCTIONS ###
@@ -47,10 +48,15 @@ def printtimedelta(td):
 
 def subtitle(inp):
     inp = inp.replace(':','')
-    for i in range(0, len(inp), 25):
-        inp = inp[:i] + '\n' + inp[i:]
-    
-    return inp
+    words = inp.split(' ')
+    lines = []
+    for word in words:
+        if lines and len(lines[-1]) + len(word) < MAX_CHARACTERS_PER_SUBTITLE_LINE:
+            lines[-1] += ' ' + word
+        else:
+            lines.append(word)
+
+    return '\n'.join(lines)
 
 def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     """ Saves a video for a given npo.nl url, using ffmpeg
@@ -96,7 +102,7 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
     browser.quit()
 
 def main(fragmentsfile):
-    fragments = [eval(line) for line in fragmentsfile]
+    fragments = json.load(fragmentsfile)
     name = os.path.basename(os.path.splitext(fragmentsfile.name)[0])
 
     folder = os.path.join('vids', name + datetime.now().strftime('%Y%m%d_%H%M'))
@@ -104,17 +110,25 @@ def main(fragmentsfile):
         os.makedirs(folder)
 
     for i,fragment in enumerate(fragments):
-        prid = fragment[0]
+        prid = fragment['prid']
         url = prid2url(prid)
-        begin = parsetimedelta(fragment[1])
-        end = parsetimedelta(fragment[2])
-        text = subtitle(fragment[3])
+        begin = parsetimedelta(fragment['start_time'])
+        end = parsetimedelta(fragment['end_time'])
+        text = subtitle(fragment['text'])
         t = end - begin
         filepath = os.path.join(folder,  '%03d-%s-%09d.mp4' % (i, prid, begin.seconds))
         download(url, filepath, begin, t, text)
 
+    # Merge all videos using ffmpeg
+    partfiles = glob.glob(os.path.join(folder, '*.mp4'))
+    with open('filelist','w') as filelist:
+        filelist.write('\n'.join([("file ''" % f) for f in partfiles]) + '\n')
+
     # Merge all videos together
-    os.system('mencoder -oac mp3lame -ovc copy ' + folder + '/*.mp4 -o ' + folder + '/compilation.mp4')
+    inputfiles = os.path.join(folder, '*.mp4')
+    outputfile = os.path.join(folder, 'compilation.mp4')
+    cmd = ['mencoder', '-oac mp3lame', '-ovc copy', inputfiles, '-o', 'outputfile']
+    os.system(' '.join(cmd))
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process fragments file and build video.')

@@ -68,7 +68,7 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None, use_c
     for opt in CHROME_OPTIONS:
         options.add_argument(opt)
 
-    vid_id = vidurl + printtimedelta(starttime) + printtimedelta(timespan)
+    vid_id = vidurl + printtimedelta(starttime) + printtimedelta(timespan) + str(len(text))
     vid_id = "".join([c for c in vid_id if c.isalpha() or c.isdigit() or c in '._-']).rstrip() + '.mp4'
     cached = os.path.join(CACHE, vid_id)
 

@@ -95,7 +95,7 @@ def main(outfile,
     
     start_time = time.time()
 
-    print 'Finding subtitles matching "%s", in programs matching "%s"\nfrom source <%s> to output file <%s>' % (search_regex, program_regex, subs_folder, outfile.name)
+    print 'Finding subtitles matching "%s", in programs matching "%s"\nfrom source <%s> to output file <%s>' % (search_regex, program_regex, subs_folder, outfile)
     
     # Ga programma's af
     resultlist = []
@@ -120,7 +120,7 @@ def main(outfile,
     if shuffle:
         random.shuffle(resultlist)
     
-    json.dump(resultlist, outfile, indent=2)
+    json.dump(resultlist, open(outfile, 'w'), indent=2)
     
     print "Found %d clips." % len(resultlist)
     print "Finished in %.0f seconds" % (time.time() - start_time)
@@ -129,7 +129,7 @@ def main(outfile,
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Query the T888 database to find fragments, and build a fragments file from it.')
     parser.add_argument('search_regex', type=str, help='search query')
-    parser.add_argument('output', type=argparse.FileType('w'), help='file to save fragments to')
+    parser.add_argument('output', type=str, help='file to save fragments to')
     parser.add_argument('--program_regex', '-p', type=str, help='define in which tv program to search', default='.*')
     parser.add_argument('--subs', type=str, help='folder where to search for subtitle files', default='subtitles')
     parser.add_argument('--program_info', type=str, help='folder where to search for program info', default='program_info')

@@ -39,13 +39,14 @@ def main():
             print prid
             # Save subs
             dest_path = "%s/%s.txt"%(destination_folder, prid)
-            os.system("curl -0 -s %s/%s > %s"% (t888_source, prid, dest_path))
-            string = open(dest_path, 'r').read()
-            if string == "No subtitle found":
-                # If file only contains no subtitle found' remove it
-                os.remove(dest_path)
-            else:
-                no_subs += 1
+            if not os.path.exists(dest_path):
+                os.system("curl -0 -s %s/%s > %s"% (t888_source, prid, dest_path))
+                string = open(dest_path, 'r').read()
+                if string == "No subtitle found":
+                    # If file only contains no subtitle found' remove it
+                    os.remove(dest_path)
+                else:
+                    no_subs += 1
     print "Subtitles saved: %d"% (no_subs,)
     print "Programs searched: %d"%(no_files,)
 

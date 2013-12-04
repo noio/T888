@@ -13,7 +13,6 @@ import argparse
 from datetime import timedelta
 
 ### CONSTANTS ###
-VERBOSE = False
 
 def parsetimedelta(timestring):
     d = timedelta(hours=int(timestring[0:2]), minutes=int(timestring[3:5]), 
@@ -36,7 +35,7 @@ def convert_to_json(jsonfile):
         print 'invalid json: ' + filename
         return None
 
-def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
+def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False, offset=0.0, verbose=False):
     
     # get programma id
     prid = 'undefined'
@@ -47,7 +46,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
         pgidsdatum = programma_json['gidsdatum']
     
     if 'titel' in programma_json:
-        if VERBOSE:
+        if verbose:
             print subsfilename, programma_json['titel'],  pgidsdatum
     
     streamSense_program = ''
@@ -58,39 +57,45 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
     prevline = ''
     
     result = []
-    
-    with open(subsfilename, 'r') as subsfile:
-        for line in subsfile:
-            # Previous line cannot be empty (should have subtitle timing data), and regex should match
-            if not prevline == '' and re.search(search_regex, line):
-                # get start and endtime of subtitle
-                prevlinesplit = prevline.split(' ')
-                starttime = prevlinesplit[0]
-                try:
-                    endtime = prevlinesplit[2].strip()
-                    if VERBOSE: print line,
-                    result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':line.strip(), 'gidsdatum':pgidsdatum, 'streamSense_program':streamSense_program})
-                except:
-                    print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevsplit, )
-            prevline = line
-    # returns a list of dicts, each element is a matching line, each dict has keys 'prid' 'start_time' 'end_time' 'text'
-    return result
+        
+    if (os.path.exists(subsfilename)):
+        with open(subsfilename, 'r') as subsfile:
+            for line in subsfile:
+                # Previous line cannot be empty (should have subtitle timing data), and regex should match
+                if not prevline == '' and re.search(search_regex, line):
+                    # get start and endtime of subtitle
+                    prevlinesplit = prevline.split(' ')
+                    starttime = prevlinesplit[0]
+                    if not match_only:
+                        text = line.strip()
+                    else:
+                        text = re.search(search_regex, line).group().strip()
+
+                    try:
+                        endtime = prevlinesplit[2].strip()
+                        if verbose: print line,
+                        result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':text, 'gidsdatum':pgidsdatum, 'streamSense_program':streamSense_program})
+                    except:
+                        print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevsplit, )
+                prevline = line
+        # returns a list of dicts, each element is a matching line, each dict has keys 'prid' 'start_time' 'end_time' 'text'
+        return result
 
 
-def main(arguments):
-    
-    outfile = arguments.output
-    subs_folder = arguments.subs
-    program_info = arguments.program_info
-    program_regex = arguments.program_regex
-    search_regex = arguments.search_regex
-    shuffle = arguments.shuffle
-    start_offset = arguments.offset + arguments.start_padding
-    end_offset = arguments.offset + arguments.end_padding
+def main(outfile,
+         subs_folder,
+         program_info,
+         program_regex,
+         search_regex,
+         shuffle,
+         start_offset,
+         end_offset,
+         match_only,
+         verbose):
     
     start_time = time.time()
 
-    print "Finding subtitles with expression: %s, in programs with expression %s\nfrom source '%s' to output file '%s'"%(search_regex, program_regex, subs_folder, outfile.name)
+    print 'Finding subtitles matching "%s", in programs matching "%s"\nfrom source <%s> to output file <%s>' % (search_regex, program_regex, subs_folder, outfile.name)
     
     # Ga programma's af
     resultlist = []
@@ -106,8 +111,9 @@ def main(arguments):
                 ptitel = unicode(programma_json['titel'])
             # Ignore case, because messy data
             if re.search(program_regex, ptitel, re.IGNORECASE):
-                result = parse_subtitles(programma_json, search_regex, os.path.join(subs_folder, filename))
-                if not len(result) == 0:
+                result = parse_subtitles(programma_json, search_regex, os.path.join(subs_folder, filename), 
+                    match_only=match_only, verbose=verbose)
+                if result:
                     resultlist.extend(result)
     
     # sorted_prid = sorted(frequencydict, key=lambda k: len(frequencydict[k]), reverse=True)
@@ -124,14 +130,25 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Query the T888 database to find fragments, and build a fragments file from it.')
     parser.add_argument('search_regex', type=str, help='search query')
     parser.add_argument('output', type=argparse.FileType('w'), help='file to save fragments to')
-    parser.add_argument('--program_regex', type=str, help='define in which tv program to search', default='.*')
+    parser.add_argument('--program_regex', '-p', type=str, help='define in which tv program to search', default='.*')
     parser.add_argument('--subs', type=str, help='folder where to search for subtitle files', default='subtitles')
     parser.add_argument('--program_info', type=str, help='folder where to search for program info', default='program_info')
     parser.add_argument('--shuffle', action='store_true', default=False, help='Shuffle the clips.')
     parser.add_argument('--offset', type=float, default=0.0, help='insert an offset for each subtitle, >0 is later, <0 earlier')
     parser.add_argument('--start_padding', type=float, default=0.0, help='insert a padding to the start of the subtitle, >0 is later, <0 earlier')
     parser.add_argument('--end_padding', type=float, default=0.0, help='insert a padding to the end of the subtitle, >0 is later, <0 earlier')
-    
+    parser.add_argument('--match_only', '-m', action='store_true', default=False, help='Include only the matching part of the regex.')    
+    parser.add_argument('--verbose', '-v', action='store_true', default=False, help='Print more info.')    
+
     args = parser.parse_args()
 
-    main(args)
+    main(args.output,
+         args.subs,
+         args.program_info,
+         args.program_regex,
+         args.search_regex,
+         args.shuffle,
+         args.offset + args.start_padding,
+         args.offset + args.end_padding,
+         args.match_only,
+         args.verbose)

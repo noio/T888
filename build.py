@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 import os
 import platform
 import time
+import shutil
 from glob import glob
 from selenium import webdriver
 import selenium.webdriver.support.ui as ui
@@ -15,6 +16,7 @@ from selenium.common.exceptions import TimeoutException
 ### CONSTANTS ###
 MAX_CHARACTERS_PER_SUBTITLE_LINE = 25
 USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
+CACHE = 'cache'
 
 if platform.system() == 'Darwin':
     CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
@@ -58,13 +60,22 @@ def subtitle(inp):
 
     return '\n'.join(lines)
 
-def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
+def download(vidurl, outputfile, starttime=None, timespan=None, text=None, use_cache=True):
     """ Saves a video for a given npo.nl url, using ffmpeg
     savevideo.py [url] [filename]
     """
     options = webdriver.ChromeOptions();
     for opt in CHROME_OPTIONS:
         options.add_argument(opt)
+
+    vid_id = vidurl + printtimedelta(starttime) + printtimedelta(timespan)
+    vid_id = "".join([c for c in vid_id if c.isalpha() or c.isdigit() or c in '._-']).rstrip() + '.mp4'
+    cached = os.path.join(CACHE, vid_id)
+
+    if use_cache and os.path.exists(cached):
+        shutil.copy(cached, outputfile)
+        print "Got from cache: %s" % vidurl
+        return
 
     try:
         browser = webdriver.Chrome(chrome_options=options)
@@ -101,6 +112,11 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
         print cmd
         os.system(cmd)
 
+        if use_cache:
+            if not os.path.exists(CACHE):
+                os.makedirs(CACHE)
+            shutil.copy(outputfile, cached)
+
     except TimeoutException:
         print "Timeout, No video found."
     
@@ -129,7 +145,7 @@ def main(fragmentsfile):
 def concat(folder):
     # Merge all videos using ffmpeg
     inputfiles = os.path.join(folder, '*.mp4')
-    with open('filelist.txt','w') as filelist:
+    with open('_tmp_filelist.txt','w') as filelist:
         filelist.write('\n'.join([("file '%s'" % f) for f in glob(inputfiles)]) + '\n')
 
     # Concatenate the videos
@@ -137,12 +153,18 @@ def concat(folder):
     if USE_MENCODER:
         cmd = ['mencoder', '-oac mp3lame', '-ovc copy', inputfiles, '-o', 'outputfile']
     else:
-        cmd = ['ffmpeg', '-f', 'concat', '-i', 'filelist.txt', '-c', 'copy', outputfile]
+        cmd = ['ffmpeg', '-f', 'concat', '-i', '_tmp_filelist.txt', '-c', 'copy', outputfile]
     os.system(' '.join(cmd))    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process fragments file and build video.')
-    parser.add_argument('fragments', type=argparse.FileType('r'), help='File with list of desired fragments in JSON.')
+    parser.add_argument('-d','--download', default=None, type=argparse.FileType('r'), help='File with list of clips in JSON to download and concat.')
+    parser.add_argument('-c','--concat', default=None, type=str, help='Folder with clips to assemble (no download).')
     args = parser.parse_args()
 
-    main(args.fragments)
+    if args.download:
+        main(args.download)
+    elif args.concat:
+        concat(args.concat)
+    else:
+        parser.print_help()

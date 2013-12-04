@@ -19,9 +19,11 @@ USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/
 if platform.system() == 'Darwin':
     CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
     VIDTOOL = 'ffmpeg'
+    USE_MENCODER = False
 else:
     CHROME_OPTIONS = ["--user-data-dir=/home/sicco/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
     VIDTOOL = 'avconv'
+    USE_MENCODER = True
 
 ### FUNCTIONS ###
 
@@ -124,10 +126,12 @@ def main(fragmentsfile):
     with open('filelist.txt','w') as filelist:
         filelist.write('\n'.join([("file '%s'" % f) for f in glob(inputfiles)]) + '\n')
 
-    # Merge all videos together
+    # Concatenate the videos
     outputfile = os.path.join(folder, 'compilation.mp4')
-    cmd = ['ffmpeg', '-f', 'concat', '-i', 'filelist.txt', '-c', 'copy', outputfile]
-    # cmd = ['mencoder', '-oac mp3lame', '-ovc copy', inputfiles, '-o', 'outputfile']
+    if USE_MENCODER:
+        cmd = ['mencoder', '-oac mp3lame', '-ovc copy', inputfiles, '-o', 'outputfile']
+    else:
+        cmd = ['ffmpeg', '-f', 'concat', '-i', 'filelist.txt', '-c', 'copy', outputfile]
     os.system(' '.join(cmd))
 
 if __name__ == '__main__':

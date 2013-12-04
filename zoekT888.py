@@ -68,7 +68,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, offset=0.0):
                 starttime = prevlinesplit[0]
                 try:
                     endtime = prevlinesplit[2].strip()
-                    if VERBOSE: print '  ' + line,
+                    if VERBOSE: print line,
                     result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':line.strip(), 'gidsdatum':pgidsdatum, 'streamSense_program':streamSense_program})
                 except:
                     print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevsplit, )
@@ -103,7 +103,7 @@ def main(arguments):
         if not programma_json is None:
             ptitel = 'onbekend'
             if 'titel' in programma_json:
-                ptitel = programma_json['titel']
+                ptitel = unicode(programma_json['titel'])
             # Ignore case, because messy data
             if re.search(program_regex, ptitel, re.IGNORECASE):
                 result = parse_subtitles(programma_json, search_regex, os.path.join(subs_folder, filename))

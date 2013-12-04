@@ -116,7 +116,7 @@ def main(arguments):
     
     json.dump(resultlist, outfile, indent=2)
     
-    print "Found %d fragments." % len(resultlist)
+    print "Found %d clips." % len(resultlist)
     print "Finished in %.0f seconds" % (time.time() - start_time)
 
 
@@ -127,7 +127,7 @@ if __name__ == "__main__":
     parser.add_argument('--program_regex', type=str, help='define in which tv program to search', default='.*')
     parser.add_argument('--subs', type=str, help='folder where to search for subtitle files', default='subtitles')
     parser.add_argument('--program_info', type=str, help='folder where to search for program info', default='program_info')
-    parser.add_argument('--shuffle', type=bool, default=False, help='toggle shuffling, default is False')
+    parser.add_argument('--shuffle', action='store_true', default=False, help='Shuffle the clips.')
     parser.add_argument('--offset', type=float, default=0.0, help='insert an offset for each subtitle, >0 is later, <0 earlier')
     parser.add_argument('--start_padding', type=float, default=0.0, help='insert a padding to the start of the subtitle, >0 is later, <0 earlier')
     parser.add_argument('--end_padding', type=float, default=0.0, help='insert a padding to the end of the subtitle, >0 is later, <0 earlier')

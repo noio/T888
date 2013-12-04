@@ -46,6 +46,8 @@ def printtimedelta(td):
 
 def subtitle(inp):
     inp = inp.replace(':','')
+    inp = inp.replace('"', '')
+    inp = inp.replace("'", '')
     words = inp.split(' ')
     lines = []
     for word in words:
@@ -98,10 +100,11 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None):
         cmd = ' '.join(cmd)
         print cmd
         os.system(cmd)
-        browser.quit()
 
     except TimeoutException:
         print "Timeout, No video found."
+    
+    browser.quit()
 
 def main(fragmentsfile):
     fragments = json.load(fragmentsfile)
@@ -121,6 +124,9 @@ def main(fragmentsfile):
         filepath = os.path.join(folder,  '%03d-%s-%09d.mp4' % (i, prid, begin.seconds))
         download(url, filepath, begin, t, text)
 
+    concat(folder)
+
+def concat(folder):
     # Merge all videos using ffmpeg
     inputfiles = os.path.join(folder, '*.mp4')
     with open('filelist.txt','w') as filelist:
@@ -132,7 +138,7 @@ def main(fragmentsfile):
         cmd = ['mencoder', '-oac mp3lame', '-ovc copy', inputfiles, '-o', 'outputfile']
     else:
         cmd = ['ffmpeg', '-f', 'concat', '-i', 'filelist.txt', '-c', 'copy', outputfile]
-    os.system(' '.join(cmd))
+    os.system(' '.join(cmd))    
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process fragments file and build video.')

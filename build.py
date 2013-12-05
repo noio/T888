@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 
 import argparse
-import sys
 import json
 from datetime import datetime, timedelta
 import os
 import platform
-import time
 import shutil
 from glob import glob
 from selenium import webdriver

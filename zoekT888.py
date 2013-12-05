@@ -5,8 +5,6 @@
 import json
 import os
 import re
-import sys
-import pprint
 import random
 import time
 import argparse
@@ -32,7 +30,7 @@ def convert_to_json(jsonfile):
     try:
         return json.loads(jfile)
     except:
-        print 'invalid json: ' + filename
+        print 'invalid json: ' + jsonfile.name
         return None
 
 def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False, offset=0.0, verbose=False):
@@ -76,7 +74,7 @@ def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False
                         if verbose: print line,
                         result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':text, 'gidsdatum':pgidsdatum, 'streamSense_program':streamSense_program})
                     except:
-                        print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevsplit, )
+                        print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevlinesplit, )
                 prevline = line
         # returns a list of dicts, each element is a matching line, each dict has keys 'prid' 'start_time' 'end_time' 'text'
         return result

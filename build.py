@@ -121,7 +121,8 @@ def download(vidurl, outputfile, starttime=None, timespan=None, text=None, use_c
     browser.quit()
 
 def main(fragmentsfile):
-    fragments = json.load(fragmentsfile)
+    fragmentsdict = json.load(fragmentsfile)
+    fragments = fragmentsdict['fragments']
     name = os.path.basename(os.path.splitext(fragmentsfile.name)[0])
 
     folder = os.path.join('vids', name + datetime.now().strftime('%Y%m%d_%H%M'))

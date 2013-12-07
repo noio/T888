@@ -1,7 +1,5 @@
 #! /usr/bin/python
 
-
-# TODO: print duration, select search strategy (chronologically), bool shuffle results, store t888 & program info in a database
 import json
 import os
 import re
@@ -121,12 +119,13 @@ def main(outfile,
                     match_only=match_only, start_offset=start_offset, end_offset=end_offset, verbose=verbose)
                 if result:
                     resultlist.extend(result)
-    
-    # sorted_prid = sorted(frequencydict, key=lambda k: len(frequencydict[k]), reverse=True)
+
+    # Shuffle the list if flag was set
     if shuffle:
         random.shuffle(resultlist)
-    
-    json.dump(resultlist, open(outfile, 'w'), indent=2)
+
+    #  Save to file
+    json.dump({'query':search_regex, 'programs':program_regex, 'fragments': resultlist}, open(outfile, 'w'), indent=2)
     
     print "Found %d clips." % len(resultlist)
     print "Finished in %.0f seconds" % (time.time() - start_time)

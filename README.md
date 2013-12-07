@@ -6,9 +6,9 @@ Use regex to select subtitles and build fragments from NPO video.
 Usage
 -----
 
-Download program information and subtitles:
+Download program information and subtitles from omroep.nl:
 
-	./getsubtitles.py downloads program info and finds corresponding subtitles from omroep.nl
+	./getsubtitles.py
 
 Search the subtitles:
 

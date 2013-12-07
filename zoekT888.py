@@ -33,7 +33,7 @@ def convert_to_json(jsonfile):
         print 'invalid json: ' + jsonfile.name
         return None
 
-def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False, offset=0.0, verbose=False):
+def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False, start_offset=0.0, end_offset=0.0, verbose=False, ):
     
     # get programma id
     prid = 'undefined'
@@ -51,6 +51,10 @@ def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False
     if 'streamSense' in programma_json:
         if 'program' in programma_json['streamSense']:
             streamSense_program = programma_json['streamSense']['program']
+    
+    start_offset_delta = timedelta(seconds=start_offset)
+    end_offset_delta = timedelta(seconds=end_offset)
+    
     # Walk the subsfile
     prevline = ''
     
@@ -63,18 +67,22 @@ def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False
                 if not prevline == '' and re.search(search_regex, line):
                     # get start and endtime of subtitle
                     prevlinesplit = prevline.split(' ')
-                    starttime = prevlinesplit[0]
                     if not match_only:
                         text = line.strip()
                     else:
                         text = re.search(search_regex, line).group().strip()
 
                     try:
-                        endtime = prevlinesplit[2].strip()
+                        starttimestr = prevlinesplit[0]
+                        endtimestr = prevlinesplit[2].strip()
                         if verbose: print line,
-                        result.append({'prid':prid, 'start_time':starttime, 'end_time':endtime, 'text':text, 'gidsdatum':pgidsdatum, 'streamSense_program':streamSense_program})
+                        starttime = parsetimedelta(starttimestr) + start_offset_delta
+                        endtime = parsetimedelta(endtimestr) + end_offset_delta
+                        if verbose: print starttime, endtime
+                        result.append({'prid':prid, 'start_time':printtimedelta(starttime), 'end_time':printtimedelta(endtime), 'text':text, 'gidsdatum':pgidsdatum, 'streamSense_program':streamSense_program})
                     except:
                         print '  <EXCEPTION>: Unable to read times from string "%s"' %(prevlinesplit, )
+
                 prevline = line
         # returns a list of dicts, each element is a matching line, each dict has keys 'prid' 'start_time' 'end_time' 'text'
         return result
@@ -110,7 +118,7 @@ def main(outfile,
             # Ignore case, because messy data
             if re.search(program_regex, ptitel, re.IGNORECASE):
                 result = parse_subtitles(programma_json, search_regex, os.path.join(subs_folder, filename), 
-                    match_only=match_only, verbose=verbose)
+                    match_only=match_only, start_offset=start_offset, end_offset=end_offset, verbose=verbose)
                 if result:
                     resultlist.extend(result)
     
@@ -132,9 +140,9 @@ if __name__ == "__main__":
     parser.add_argument('--subs', type=str, help='folder where to search for subtitle files', default='subtitles')
     parser.add_argument('--program_info', type=str, help='folder where to search for program info', default='program_info')
     parser.add_argument('--shuffle', action='store_true', default=False, help='Shuffle the clips.')
-    parser.add_argument('--offset', type=float, default=0.0, help='insert an offset for each subtitle, >0 is later, <0 earlier')
-    parser.add_argument('--start_padding', type=float, default=0.0, help='insert a padding to the start of the subtitle, >0 is later, <0 earlier')
-    parser.add_argument('--end_padding', type=float, default=0.0, help='insert a padding to the end of the subtitle, >0 is later, <0 earlier')
+    parser.add_argument('--offset', type=float, default=0.0, help='insert an offset in seconds for each subtitle, >0 is later, <0 earlier')
+    parser.add_argument('--start_padding', type=float, default=0.0, help='insert a padding in seconds to the start of the subtitle, >0 is later, <0 earlier')
+    parser.add_argument('--end_padding', type=float, default=0.0, help='insert a padding in seconds to the end of the subtitle, >0 is later, <0 earlier')
     parser.add_argument('--match_only', '-m', action='store_true', default=False, help='Include only the matching part of the regex.')    
     parser.add_argument('--verbose', '-v', action='store_true', default=False, help='Print more info.')    
 

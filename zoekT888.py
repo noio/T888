@@ -100,8 +100,12 @@ def main(outfile,
 
     for filename in os.listdir(subs_folder):
         programma_json = None
-        with open(os.path.join(program_info, filename.split('.')[0] + '.json'), 'r') as jsonfile:
-            programma_json = convert_to_json(jsonfile)
+        try:
+            with open(os.path.join(program_info, filename.split('.')[0] + '.json'), 'r') as jsonfile:
+                programma_json = convert_to_json(jsonfile)
+        except IOError:
+            print "Couldn't find or open " + os.path.join(program_info, filename.split('.')[0] + '.json')
+            continue
         
         if not programma_json is None:
             ptitel = 'onbekend'

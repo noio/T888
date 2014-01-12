@@ -14,7 +14,8 @@
 # Dit is ook geen scraper =D
 # bron uitleg: http://www.hackdeoverheid.nl/datablog-programma-omschrijvingen/
 
-import os, sys, shutil
+import os
+
 def main():
     prid_source = "http://www.hackdeoverheid.nl/wp-content/uploads/sites/10/2013/11/all-prids-only1.zip"
     t888_source = "http://e.omroep.nl/tt888"
@@ -22,7 +23,9 @@ def main():
     destination_folder = "subtitles"
     
     if not os.path.exists(src_folder):
-        # extracts to folder 'program_info
+        # extracts to folder 'program_info'
+        os.mkdir(src_folder)
+        # Sicco: geeft errors bij mij, moest handmatig dlen en uitpakken :( ;)
         os.system("curl -0 %s | tar -zx" % (prid_source, ))
     
     if not os.path.exists(destination_folder):
@@ -40,7 +43,7 @@ def main():
             # Save subs
             dest_path = "%s/%s.txt"%(destination_folder, prid)
             if not os.path.exists(dest_path):
-                os.system("curl -0 -s %s/%s > %s"% (t888_source, prid, dest_path))
+                os.system("curl -0 -s %s/%s > '%s'"% (t888_source, prid, dest_path))
                 string = open(dest_path, 'r').read()
                 if string == "No subtitle found":
                     # If file only contains no subtitle found' remove it

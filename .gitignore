@@ -6,3 +6,5 @@ program_info
 local
 fragments
 vids
+cache
+_tmp*

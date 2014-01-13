@@ -48,7 +48,11 @@ def parse_subtitles(programma_json, search_regex, subsfilename, match_only=False
     streamSense_program = ''
     if 'streamSense' in programma_json:
         if 'program' in programma_json['streamSense']:
-            streamSense_program = programma_json['streamSense']['program']
+            # Some video's have no program name (value is 'null') so check
+            # whether the retrieved data is a string/unicode before using it.
+            if (programma_json['streamSense']['program']) == unicode:
+                streamSense_program = programma_json['streamSense']['program']
+
     
     start_offset_delta = timedelta(seconds=start_offset)
     end_offset_delta = timedelta(seconds=end_offset)

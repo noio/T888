@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import os
 import platform
 import shutil
+import sys
 from glob import glob
 from selenium import webdriver
 import selenium.webdriver.support.ui as ui
@@ -15,15 +16,33 @@ from selenium.common.exceptions import TimeoutException
 MAX_CHARACTERS_PER_SUBTITLE_LINE = 25
 USER_AGENT_STRING = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_7_5) AppleWebKit/536.30.1 (KHTML, like Gecko) Version/6.0.5 Safari/536.30.1"
 CACHE = 'cache'
+PLATFORM = platform.system()
 
-if platform.system() == 'Darwin':
-    CHROME_OPTIONS = ["--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+if PLATFORM == 'Darwin':
+    CHROME_OPTIONS = [
+        "--user-agent="+USER_AGENT_STRING,
+        "--disable-extensions",
+        "--disable-bundled-ppapi-flash",
+        "--disable-internal-flash",
+        "--disable-audio"
+    ] 
     VIDTOOL = 'ffmpeg'
     USE_MENCODER = False
-else:
-    CHROME_OPTIONS = ["--user-data-dir=/home/sicco/.config/chromium/Default" ,"--user-agent="+USER_AGENT_STRING, "--disable-extensions", "--disable-bundled-ppapi-flash", "--disable-internal-flash"] 
+elif PLATFORM == 'Linux':
+    from pyvirtualdisplay import Display
+    home = os.path.expanduser('~')
+    CHROME_OPTIONS = [
+        "--user-data-dir=" + home + "/.config/chromium/Default",
+        "--user-agent="+USER_AGENT_STRING,
+        "--disable-extensions",
+        "--disable-bundled-ppapi-flash",
+        "--disable-internal-flash",
+        "--disable-audio"
+    ] 
     VIDTOOL = 'avconv'
     USE_MENCODER = True
+else:
+    sys.exit("Error: Unsupported platform. So far this program has only been tested on Linux and OSX. You might want to edit the code and add support for your specific platform.")
 
 ### FUNCTIONS ###
 
@@ -129,6 +148,13 @@ def main(fragmentsfile):
     if not os.path.exists(folder):
         os.makedirs(folder)
 
+    # Run the browser on another display in order not to bother the user.
+    # This link might be useful to make it work on OS X:
+    # http://afitnerd.com/2011/09/06/headless-browser-testing-on-mac/
+    if PLATFORM == 'Linux':
+        display = Display(visible=0, size=(800, 600))
+        display.start()
+
     for i,fragment in enumerate(fragments):
         prid = fragment['prid']
         url = fragmenturl(fragment)
@@ -138,6 +164,9 @@ def main(fragmentsfile):
         t = end - begin
         filepath = os.path.join(folder,  '%03d-%s-%09d.mp4' % (i, prid, begin.seconds))
         download(url, filepath, begin, t, text)
+
+    if PLATFORM == 'Linux':
+        display.stop()
 
     concat(folder)
 
@@ -150,7 +179,7 @@ def concat(folder):
     # Concatenate the videos
     outputfile = os.path.join(folder, 'compilation.mp4')
     if USE_MENCODER:
-        cmd = ['mencoder', '-oac mp3lame', '-ovc copy', inputfiles, '-o', 'outputfile']
+        cmd = ['mencoder', '-oac mp3lame', '-ovc copy', inputfiles, '-o', outputfile]
     else:
         cmd = ['ffmpeg', '-f', 'concat', '-i', '_tmp_filelist.txt', '-c', 'copy', outputfile]
     os.system(' '.join(cmd))    

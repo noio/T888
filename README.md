@@ -58,6 +58,10 @@ Build the movie:
 Dependencies
 ------------
 
+Ubuntu:
+* Selenium: `sudo pip install selenium`
+* pyvirtualdisplay: `sudo pip install pyvirtualdisplay`
+
 OSX:
 
 * Selenium: `sudo pip install selenium`
